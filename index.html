@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard comercial de visitas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--navy:#1C2363;--green:#008257;--cyan:#00BEEA;--bg:#F4F7F9;--tx:#2D2D2D;--mut:#6b7280;--ln:#e1e6ec}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+header{background:var(--navy);color:#fff;padding:20px 28px 18px}
+header h1{margin:0;font-size:24px;font-weight:700}
+header p{margin:2px 0 14px;color:#b9bff0;font-size:14px}
+.ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ctl input[type=text]{flex:1 1 360px;min-width:220px}
+input,select,button{font:inherit;border-radius:6px;border:1px solid var(--ln);padding:8px 10px;color:var(--tx);background:#fff}
+button{cursor:pointer;font-weight:600}
+#btnRef{background:var(--cyan);border-color:var(--cyan);color:var(--navy)}
+#btnRef:disabled{opacity:.6;cursor:wait}
+.ctl label{color:#dfe3ff;font-size:13px}
+#status{flex-basis:100%;font-size:13px;color:#b9bff0}
+#status.ok{color:#7fe3bd}#status.err{color:#ffb4b4}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:1px}
+main{max-width:1280px;margin:0 auto;padding:18px 28px 40px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border:1px solid var(--ln);border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.filters .d{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)}
+.filters select{max-width:200px}
+#clear{background:transparent;color:var(--navy);border-color:var(--navy)}
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr 1.6fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--ln);border-top:4px solid var(--navy);border-radius:10px;padding:14px 16px}
+.kpi:nth-child(2n){border-top-color:var(--green)}.kpi:nth-child(6){border-top-color:var(--cyan)}
+.kpi span{display:block;color:var(--mut);font-size:13px}
+.kpi b{display:block;font-size:clamp(22px,2.1vw,28px);line-height:1.2;color:var(--navy);margin:2px 0;white-space:nowrap}
+.kpi small{color:var(--mut);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{background:#fff;border:1px solid var(--ln);border-radius:10px;padding:16px}
+.card h2{margin:0 0 10px;font-size:16px;color:var(--navy)}
+.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}.c12{grid-column:span 12}
+.box{position:relative;height:300px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--navy);border-bottom:2px solid var(--ln);padding:8px 6px}
+td{border-bottom:1px solid var(--ln);padding:8px 6px;vertical-align:top}
+.tw{overflow-x:auto}
+.pill{display:inline-block;white-space:nowrap;background:#e6f4ee;color:var(--green);border-radius:20px;padding:2px 12px;font-size:13px;font-weight:600}
+td:nth-child(5),th:nth-child(5){white-space:nowrap}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.c8,.c4,.c6{grid-column:span 12}}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr);grid-auto-flow:dense}.kpi:nth-child(4){grid-column:span 2}main{padding:14px}header{padding:16px}}
+</style></head>
+<body>
+<header>
+  <h1>Visitas comerciales</h1>
+  <p>Seguimiento de visitas, pedidos y conversión</p>
+  <div class="ctl">
+    <input type="text" id="url" placeholder="Pega aquí el link de la aplicación web de Apps Script (termina en /exec)" aria-label="Link de Apps Script">
+    <button id="btnRef">Actualizar datos</button>
+    <label for="auto">Actualización automática</label>
+    <select id="auto">
+      <option value="0">Desactivada</option><option value="1">Cada 1 min</option><option value="5">Cada 5 min</option>
+      <option value="15">Cada 15 min</option><option value="30">Cada 30 min</option><option value="60">Cada 60 min</option>
+    </select>
+    <div id="status">Pega el link del Apps Script para comenzar.</div>
+  </div>
+</header>
+<main>
+  <div class="filters">
+    <span class="d">Desde <input type="date" id="fDesde"></span>
+    <span class="d">Hasta <input type="date" id="fHasta"></span>
+    <select id="fCiu"></select><select id="fSeg"></select><select id="fTipo"></select><select id="fEtapa"></select><select id="fEst"></select>
+    <button id="clear">Limpiar filtros</button>
+  </div>
+  <section class="kpis" id="kpis"></section>
+  <section class="grid">
+    <div class="card c8"><h2>Visitas y valor de pedidos por día</h2><div class="box"><canvas id="cTrend"></canvas></div></div>
+    <div class="card c4"><h2>Visitas por etapa comercial</h2><div class="box"><canvas id="cEtapa"></canvas></div></div>
+    <div class="card c6"><h2>Visitas por ciudad (top 8)</h2><div class="box"><canvas id="cCiu"></canvas></div></div>
+    <div class="card c6"><h2>Visitas por segmento</h2><div class="box"><canvas id="cSeg"></canvas></div></div>
+    <div class="card c12"><h2>Últimas visitas</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Ciudad</th><th>Etapa</th><th>Pedido</th><th>Observaciones</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const LS=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const SV=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const norm=s=>String(s??'').trim(), up=s=>norm(s).toUpperCase();
+const noacc=s=>norm(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const num=v=>typeof v==='number'?v:(Number(String(v??'').replace(/[^\d-]/g,'').replace(/^-$/,''))||0);
+const fm=n=>n.toLocaleString('es-CO'), money=n=>'$ '+fm(Math.round(n));
+const short=v=>v>=1e6?(v/1e6).toFixed(1)+' M':v>=1e3?(v/1e3).toFixed(0)+' mil':v;
+const NAVY='#1C2363',GREEN='#008257',CYAN='#00BEEA';
+let RAW=[],timer=null,charts={};
+const FS=[['ciu','fCiu','Ciudad'],['seg','fSeg','Segmento'],['tipo','fTipo','Tipo de cliente'],['etapa','fEtapa','Etapa comercial'],['est','fEst','Estado del pedido']];
+Chart.defaults.color=NAVY;Chart.defaults.font.family=getComputedStyle(document.body).fontFamily;
+const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+
+function pd(v){const s=norm(v);let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:'';}
+function prep(r){return{f:pd(r['Fecha_Visita']),cli:norm(r['Cliente']),tipo:norm(r['TIPO CLIENTE']),ciu:up(r['Ciudad']),seg:up(r['Segmento']),
+  ped:noacc(r['Genero Pedido'])==='si',est:norm(r['Estado del Pedido']),val:num(r['Valor Pedido']),m:num(r['Metros Pedidos']),
+  etapa:norm(r['Etapa Comercial']),obs:norm(r['Observaciones'])}}
+function status(t,c){const s=$('status');s.textContent=t;s.className=c||'';}
+
+function fillFilters(){FS.forEach(([k,id,lb])=>{const el=$(id),cur=el.value;
+  const vals=[...new Set(RAW.map(r=>r[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  el.innerHTML=`<option value="">${lb}: todos</option>`+vals.map(v=>`<option>${esc(v)}</option>`).join('');
+  if(vals.includes(cur))el.value=cur;});}
+function rows(){const d1=$('fDesde').value,d2=$('fHasta').value;
+  return RAW.filter(r=>(!d1||r.f>=d1)&&(!d2||r.f<=d2)&&FS.every(([k,id])=>!$(id).value||r[k]===$(id).value));}
+const grp=(a,k)=>{const o={};a.forEach(r=>{const key=r[k]||'Sin dato';o[key]=(o[key]||0)+1});return Object.entries(o).sort((x,y)=>y[1]-x[1]);};
+function draw(id,cfg){charts[id]?.destroy();charts[id]=new Chart($(id),cfg);}
+
+function kpis(a){const n=a.length,cl=new Set(a.map(r=>r.cli.toUpperCase()).filter(Boolean));
+  const nu=new Set(a.filter(r=>up(r.tipo)==='NUEVO').map(r=>r.cli.toUpperCase()));
+  const ped=a.filter(r=>r.ped).length,val=a.reduce((s,r)=>s+r.val,0),m=a.reduce((s,r)=>s+r.m,0),ex=a.filter(r=>r.seg.includes('(EXP)')).length;
+  const K=[['Visitas',fm(n),'En el filtro actual'],['Clientes únicos',fm(cl.size),`${nu.size} nuevos`],
+   ['Pedidos',fm(ped),`${n?(ped/n*100).toFixed(1):0}% de conversión`],['Valor de pedidos',money(val),ped?`Ticket promedio ${money(val/ped)}`:'Sin pedidos'],
+   ['Metros pedidos',fm(m),'En el filtro actual'],['Visitas exportación',`${n?(ex/n*100).toFixed(0):0}%`,`${ex} de ${n} visitas`]];
+  $('kpis').innerHTML=K.map(([l,v,s])=>`<div class="kpi"><span>${l}</span><b>${v}</b><small>${s}</small></div>`).join('');}
+
+function render(){const a=rows();kpis(a);
+  const d={};a.forEach(r=>{if(!r.f)return;(d[r.f]??={v:0,$:0});d[r.f].v++;d[r.f].$+=r.val});
+  const ks=Object.keys(d).sort();
+  draw('cTrend',{type:'bar',data:{labels:ks.map(k=>k.slice(8)+'/'+k.slice(5,7)),datasets:[
+    {type:'bar',label:'Visitas',data:ks.map(k=>d[k].v),backgroundColor:CYAN,borderRadius:4,yAxisID:'y'},
+    {type:'line',label:'Valor de pedidos',data:ks.map(k=>d[k].$),borderColor:GREEN,backgroundColor:GREEN,tension:.3,yAxisID:'y1'}]},
+    options:{...base,plugins:{legend:{display:true,position:'bottom'}},scales:{y:{beginAtZero:true,ticks:{precision:0},title:{display:true,text:'Visitas'}},
+    y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{callback:short},title:{display:true,text:'Valor ($)'}}}}});
+  const hb=(id,data,color)=>draw(id,{type:'bar',data:{labels:data.map(x=>x[0]),datasets:[{data:data.map(x=>x[1]),backgroundColor:color,borderRadius:4}]},
+    options:{...base,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
+  hb('cEtapa',grp(a,'etapa'),NAVY);hb('cCiu',grp(a,'ciu').slice(0,8),GREEN);
+  const sg=grp(a,'seg');
+  draw('cSeg',{type:'doughnut',data:{labels:sg.map(x=>x[0]),datasets:[{data:sg.map(x=>x[1]),backgroundColor:[NAVY,GREEN,CYAN,'#5b66b8','#4fb596','#7fdcf3','#9aa0c8','#b7d9cc'],borderWidth:2}]},
+    options:{...base,cutout:'60%',plugins:{legend:{display:true,position:'right'}}}});
+  const t=[...a].sort((x,y)=>y.f.localeCompare(x.f)).slice(0,8);
+  $('tb').innerHTML=t.length?t.map(r=>`<tr><td>${r.f?r.f.slice(8)+'/'+r.f.slice(5,7)+'/'+r.f.slice(0,4):''}</td><td>${esc(r.cli)}</td><td>${esc(r.ciu)}</td><td>${esc(r.etapa)}</td><td>${r.ped?`<span class="pill">${money(r.val)}</span>`:'—'}</td><td>${esc(r.obs)}</td></tr>`).join('')
+    :'<tr><td colspan="6">No hay visitas con los filtros seleccionados.</td></tr>';}
+
+async function load(){const url=$('url').value.trim();
+  if(!url){status('Pega el link del Apps Script para comenzar.');return;}
+  SV('dm_url',url);status('Actualizando…');$('btnRef').disabled=true;
+  try{const res=await fetch(url,{redirect:'follow'});if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();if(!j.ok)throw new Error(j.error||'Respuesta inválida');
+    RAW=j.data.map(prep);fillFilters();render();
+    status(`Actualizado a las ${new Date().toLocaleTimeString('es-CO')} · ${RAW.length} registros`,'ok');
+  }catch(e){status(`No se pudo leer los datos (${e.message}). Revisa que el acceso sea "Cualquier persona" y que el link termine en /exec.`,'err');}
+  finally{$('btnRef').disabled=false;}}
+function setAuto(){clearInterval(timer);const m=+$('auto').value;SV('dm_auto',m);if(m)timer=setInterval(load,m*60000);}
+
+$('btnRef').onclick=load;
+$('url').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+$('auto').onchange=setAuto;
+['fDesde','fHasta',...FS.map(f=>f[1])].forEach(id=>$(id).addEventListener('change',render));
+$('clear').onclick=()=>{['fDesde','fHasta',...FS.map(f=>f[1])].forEach(id=>$(id).value='');render();};
+FS.forEach(([k,id,lb])=>$(id).innerHTML=`<option value="">${lb}: todos</option>`);
+$('url').value=LS('dm_url')||'';$('auto').value=LS('dm_auto')||'0';
+setAuto();render();if($('url').value)load();
+</script>
+</body></html>
