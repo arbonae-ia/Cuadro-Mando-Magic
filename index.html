@@ -43,6 +43,17 @@ main{max-width:1280px;margin:0 auto;padding:18px 28px 40px}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;color:var(--navy);border-bottom:2px solid var(--ln);padding:8px 6px}
 td{border-bottom:1px solid var(--ln);padding:8px 6px;vertical-align:top}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.hd h2{margin:0}
+.tag{background:#eef0fa;color:var(--navy);font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px}
+.seg{display:grid;gap:9px}
+.sr{display:grid;grid-template-columns:minmax(110px,170px) 1fr auto;gap:12px;align-items:center;font-size:13px}
+.sr .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr .t{height:10px;background:#eef1f5;border-radius:6px;overflow:hidden}.sr .t i{display:block;height:100%;border-radius:6px}
+.sr .v{font-weight:700;color:var(--navy);white-space:nowrap;text-align:right;min-width:80px}
+.pills{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.pl{border-radius:10px;text-align:center;padding:8px;border:1px solid}
+.pl small{display:block;font-size:11px;font-weight:700;letter-spacing:.04em}.pl b{font-size:18px}
+.pl.g{background:#e6f4ee;border-color:#9fd5bf;color:var(--green)}.pl.c{background:#e6f8fd;border-color:#9fe0f3;color:var(--navy)}
 .tw{overflow-x:auto}
 .pill{display:inline-block;white-space:nowrap;background:#e6f4ee;color:var(--green);border-radius:20px;padding:2px 12px;font-size:13px;font-weight:600}
 td:nth-child(5),th:nth-child(5){white-space:nowrap}
@@ -82,7 +93,7 @@ td:nth-child(5),th:nth-child(5){white-space:nowrap}
     <div class="card c8"><h2>Visitas y valor de pedidos por día</h2><div class="box"><canvas id="cTrend"></canvas></div></div>
     <div class="card c4"><h2>Visitas por etapa comercial</h2><div class="box"><canvas id="cEtapa"></canvas></div></div>
     <div class="card c6"><h2>Alcance geográfico de las visitas</h2><p class="sub" id="ciuSub"></p><div class="box"><canvas id="cCiu"></canvas></div></div>
-    <div class="card c6"><h2>Visitas por segmento</h2><div class="box"><canvas id="cSeg"></canvas></div></div>
+    <div class="card c6"><div class="hd"><h2>Visitas por segmento</h2><span class="tag">Top 10</span></div><div class="seg" id="segList"></div><div class="pills" id="segPills"></div></div>
     <div class="card c12"><h2>Últimas visitas</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Ciudad</th><th>Etapa</th><th>Pedido</th><th>Observaciones</th></tr></thead><tbody id="tb"></tbody></table></div></div>
   </section>
 </main>
@@ -135,6 +146,13 @@ function geo(a){const g=grp(a,'ciu'),tot=a.length||1,real=g.filter(x=>x[0]!=='Si
   draw('cCiu',{type:'bar',plugins:[barLabels],data:{labels:data.map(x=>x[0]),datasets:[{data:data.map(x=>x[1]),backgroundColor:data.map((x,i)=>ro&&i===data.length-1?CYAN:GREEN),borderRadius:4}]},
     options:{...base,indexAxis:'y',layout:{padding:{right:64}},scales:{x:{beginAtZero:true,ticks:{precision:0}}},
     plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} visitas (${(c.raw/tot*100).toFixed(1)}%)`}}}}});}
+const SEGC=[NAVY,GREEN,CYAN,'#5b66b8','#4fb596','#e0457b','#8a5fd0','#f08a24','#7fdcf3','#2f6fa8'];
+function seg(a){const g=grp(a,'seg'),t=a.length||1,rest=g.slice(10),ro=rest.reduce((s,x)=>s+x[1],0);
+  const L=g.slice(0,10).map((x,i)=>[x[0],x[1],SEGC[i]]);if(ro)L.push([`Otros nichos (${rest.length})`,ro,'#9aa0c8']);
+  const mx=Math.max(...L.map(x=>x[1]),1),pc=n=>(n/t*100).toFixed(1);
+  $('segList').innerHTML=a.length?L.map(([n,v,c])=>`<div class="sr"><span class="n" title="${esc(n)}">${esc(n)}</span><span class="t"><i style="width:${v/mx*100}%;background:${c}"></i></span><span class="v">${v} (${pc(v)}%)</span></div>`).join(''):'<p class="sub">Sin datos con los filtros seleccionados.</p>';
+  const p=a.filter(r=>r.ped).length,sp=a.length-p;
+  $('segPills').innerHTML=`<div class="pl g"><small>CON PEDIDO</small><b>${p} (${pc(p)}%)</b></div><div class="pl c"><small>SIN PEDIDO</small><b>${sp} (${pc(sp)}%)</b></div>`;}
 function render(){const a=rows();kpis(a);
   const d={};a.forEach(r=>{if(!r.f)return;(d[r.f]??={v:0,$:0});d[r.f].v++;d[r.f].$+=r.val});
   const ks=Object.keys(d).sort();
@@ -146,9 +164,7 @@ function render(){const a=rows();kpis(a);
   const hb=(id,data,color)=>draw(id,{type:'bar',data:{labels:data.map(x=>x[0]),datasets:[{data:data.map(x=>x[1]),backgroundColor:color,borderRadius:4}]},
     options:{...base,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
   hb('cEtapa',grp(a,'etapa'),NAVY);geo(a);
-  const sg=grp(a,'seg');
-  draw('cSeg',{type:'doughnut',data:{labels:sg.map(x=>x[0]),datasets:[{data:sg.map(x=>x[1]),backgroundColor:[NAVY,GREEN,CYAN,'#5b66b8','#4fb596','#7fdcf3','#9aa0c8','#b7d9cc'],borderWidth:2}]},
-    options:{...base,cutout:'60%',plugins:{legend:{display:true,position:'right'}}}});
+  seg(a);
   const t=[...a].sort((x,y)=>y.f.localeCompare(x.f)).slice(0,8);
   $('tb').innerHTML=t.length?t.map(r=>`<tr><td>${r.f?r.f.slice(8)+'/'+r.f.slice(5,7)+'/'+r.f.slice(0,4):''}</td><td>${esc(r.cli)}</td><td>${esc(r.ciu)}</td><td>${esc(r.etapa)}</td><td>${r.ped?`<span class="pill">${money(r.val)}</span>`:'—'}</td><td>${esc(r.obs)}</td></tr>`).join('')
     :'<tr><td colspan="6">No hay visitas con los filtros seleccionados.</td></tr>';}
