@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="es" translate="no"><head><meta charset="utf-8"><meta name="google" content="notranslate"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dashboard comercial de visitas</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -41,8 +41,9 @@ main{max-width:1280px;margin:0 auto;padding:18px 28px 40px}
 .box{position:relative;height:300px}
 .sub{margin:-6px 0 8px;color:var(--mut);font-size:13px}.sub b{color:var(--green);font-size:15px}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{position:sticky;top:0;background:#fff;text-align:left;color:var(--navy);border-bottom:2px solid var(--ln);padding:8px 6px}
-td{border-bottom:1px solid var(--ln);padding:8px 6px;vertical-align:top}
+th{position:sticky;top:0;z-index:1;background:#E4E9F5;text-align:left;color:var(--navy);font-size:13px;font-weight:700;border-bottom:2px solid var(--navy);padding:11px 8px}
+th:first-child{border-top-left-radius:8px}th:last-child{border-top-right-radius:8px}
+td{border-bottom:1px solid var(--ln);padding:9px 8px;vertical-align:top}
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.hd h2{margin:0}
 .tag{background:#eef0fa;color:var(--navy);font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px}
 .seg{display:grid;gap:9px}
@@ -106,7 +107,7 @@ td:nth-child(6),td:nth-child(7),th:nth-child(6),th:nth-child(7){white-space:nowr
     <div class="card c4"><h2>Visitas por etapa comercial</h2><div class="box"><canvas id="cEtapa"></canvas></div></div>
     <div class="card c6"><h2>Alcance geográfico de las visitas</h2><p class="sub" id="ciuSub"></p><div class="box"><canvas id="cCiu"></canvas></div></div>
     <div class="card c6"><div class="hd"><h2>Visitas por segmento</h2><span class="tag">Top 10</span></div><div class="seg" id="segList"></div><div class="pills" id="segPills"></div></div>
-    <div class="card c12"><div class="hd"><h2>Tipo de cliente &amp; proceso comercial</h2><span class="tag">Composición</span></div><div class="tipos" id="tipoList"></div><div class="ft" id="tipoFt"></div></div>
+    <div class="card c12"><div class="hd"><h2>Tipo de cliente &amp; proceso comercial</h2></div><div class="tipos" id="tipoList"></div><div class="ft" id="tipoFt"></div></div>
     <h3 class="sec">Detalle de ventas</h3>
     <div class="card c6"><div class="hd"><h2>Ranking de facturación por cliente</h2><span class="tag" id="rkTag"></span></div><div class="seg" id="rkList"></div></div>
     <div class="card c6"><div class="hd"><h2>Servicio &amp; bases textiles facturadas</h2><span class="tag" id="svTag"></span></div><div id="svList"></div><p class="sub2">Facturación por base textil</p><div class="seg" id="bsList"></div></div>
